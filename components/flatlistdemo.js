@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 
-export default class Chat extends Component{
+export default class FlatListDemo extends Component{
 
     constructor(props){
         super(props);

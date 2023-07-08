@@ -1,68 +1,88 @@
 import React, { Component } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Button } from 'react-native';
 import * as EmailValidator from 'email-validator';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default class LoginScreen extends Component {
-    constructor(props){
-        super(props);
+  constructor(props) {
+    super(props);
 
-        this.state = {
-            email: "",
-            password: "",
-            emailError: "",
-            passwordError: "",
-            successMessage: "",
-            submitted: false
-        }
+    this.state = {
+      email: '',
+      password: '',
+      emailError: '',
+      passwordError: '',
+      successMessage: '',
+      submitted: false,
+    };
 
+    this._onPressButton = this._onPressButton.bind(this);
+  }
 
-        this._onPressButton = this._onPressButton.bind(this)
+  _onPressButton() {
+    this.setState({
+      submitted: true,
+      emailError: '',
+      passwordError: '',
+      successMessage: '',
+    });
+
+    if (!(this.state.email && this.state.password)) {
+      this.setState({
+        emailError: 'Must enter email',
+        passwordError: 'Must enter password',
+      });
+      return;
     }
 
-    _onPressButton(){
-        this.setState({submitted: true, emailError: "", passwordError: "", successMessage: ""})
-    
-        if(!(this.state.email && this.state.password)){
-            this.setState({emailError: "Must enter email", passwordError: "Must enter password"})
-            return;
-        }
-    
-        if(!EmailValidator.validate(this.state.email)){
-            this.setState({emailError: "Must enter valid email"})
-            return;
-        }
-    
-        const PASSWORD_REGEX = new RegExp("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$")
-        if(!PASSWORD_REGEX.test(this.state.password)){
-            this.setState({passwordError: "Password isn't strong enough (One upper, one lower, one special, one number, at least 8 characters long)"})
-            return;
-        }
-    
-
-
-        const { email, password } = this.state;
-        fetch('http://localhost:3333/api/1.0.0/login', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email: email,
-                password: password
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            this.setState({successMessage: `Successfully logged in with email: ${email}`})
-            console.log("Validated and ready to send to the API");
-        })
-        .catch(error => {
-            console.error(error);
-        });
+    if (!EmailValidator.validate(this.state.email)) {
+      this.setState({ emailError: 'Must enter valid email' });
+      return;
     }
-    
+
+    const PASSWORD_REGEX = new RegExp(
+      '^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$',
+    );
+    if (!PASSWORD_REGEX.test(this.state.password)) {
+      this.setState({
+        passwordError:
+          "Password isn't strong enough (One upper, one lower, one special, one number, at least 8 characters long)",
+      });
+      return;
+    }
+
+    const { email, password } = this.state;
+    fetch('http://localhost:3333/api/1.0.0/login', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password,
+      }),
+    })
+      .then((response) => {
+        if (response.status === 200) {
+          return response.json();
+        } else if (response.status === 400) {
+          throw new Error('Invalid email or password');
+        } else {
+          throw new Error('Something went wrong');
+        }
+      })
+      .then(async (responseJson) => {
+        console.log(responseJson);
+        await AsyncStorage.setItem('whatsthat_session_token', responseJson.token);
+        this.props.navigation.navigate('LoggedInNav');
+      })
+      .catch((error) => {
+        console.log(error);
+        this.setState({ passwordError: error.message });
+      });
+  }
+
 
     render(){
 

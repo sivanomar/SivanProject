@@ -67,6 +67,7 @@ export default class SignUpScreen extends Component {
           if (response.ok) {
             this.setState({successMessage: `Successfully signed up with name: ${firstName} ${lastName}, email: ${email}`})
             console.log("Validated and sent to the API");
+            this.props.navigation.navigate('Login');
           } else {
             throw new Error("Failed to send data to API");
           }
