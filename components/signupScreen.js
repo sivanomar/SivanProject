@@ -1,145 +1,182 @@
-import React, { Component } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { useFormik } from 'formik';
 import * as EmailValidator from 'email-validator';
 
-export default class SignUpScreen extends Component {
+const SignUpScreen = () =>
+{
+    const [successMessage, setSuccessMessage] = useState("");
 
-    constructor(props){
-        super(props);
-
-        this.state = {
+    const formik = useFormik({
+        initialValues: {
             firstName: "",
             lastName: "",
             email: "",
             password: "",
-            confirmPassword: "",
-            firstNameError: "",
-            lastNameError: "",
-            emailError: "",
-            passwordError: "",
-            confirmPasswordError: "",
-            successMessage: "",
-            submitted: false
-        }
+            confirmPassword: ""
+        },
+        validate: values =>
+        {
+            const errors = {};
 
-        this._onPressButton = this._onPressButton.bind(this)
-    }
+            if (!values.firstName)
+            {
+                errors.firstName = "Must enter first name";
+            }
 
-    _onPressButton(){
-        this.setState({submitted: true, firstNameError: "", lastNameError: "", emailError: "", passwordError: "", confirmPasswordError: "", successMessage: ""})
-      
-        if(!(this.state.firstName && this.state.lastName && this.state.email && this.state.password && this.state.confirmPassword)){
-            this.setState({firstNameError: "Must enter first name", lastNameError: "Must enter last name", emailError: "Must enter email", passwordError: "Must enter password", confirmPasswordError: "Must enter confirm password"})
-            return;
-        }
-      
-        if(!EmailValidator.validate(this.state.email)){
-            this.setState({emailError: "Must enter valid email"})
-            return;
-        }
-      
-        const PASSWORD_REGEX = new RegExp("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$")
-        if(!PASSWORD_REGEX.test(this.state.password)){
-            this.setState({passwordError: "Password isn't strong enough (One upper, one lower, one special, one number, at least 8 characters long)"})
-            return;
-        }
-        
-        if(this.state.password !== this.state.confirmPassword){
-            this.setState({confirmPasswordError: "Passwords do not match"})
-            return;
-        }
-      
-        const { firstName, lastName, email, password } = this.state;
-    
-        fetch("http://localhost:3333/api/1.0.0/user", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            first_name: firstName,
-            last_name: lastName,
-            email,
-            password
-          })
-        })
-        .then(response => {
-          if (response.ok) {
-            this.setState({successMessage: `Successfully signed up with name: ${firstName} ${lastName}, email: ${email}`})
-            console.log("Validated and sent to the API");
-            this.props.navigation.navigate('Login');
-          } else {
-            throw new Error("Failed to send data to API");
-          }
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    }
-    
+            if (!values.lastName)
+            {
+                errors.lastName = "Must enter last name";
+            }
 
-    render(){
-        return (
-            <View style = {styles.container}>
-                <TextInput
-                    style = {styles.input}
-                    placeholder = "First Name"
-                    onChangeText = {(firstName) => this.setState({firstName})}
-                    value = {this.state.firstName}
-                />
-                <Text style = {styles.errorText}>{this.state.firstNameError}</Text>
-    
-                <TextInput
-                    style = {styles.input}
-                    placeholder = "Last Name"
-                    onChangeText = {(lastName) => this.setState({lastName})}
-                    value = {this.state.lastName}
-                />
-                <Text style = {styles.errorText}>{this.state.lastNameError}</Text>
-    
-                <TextInput
-                    style = {styles.input}
-                    placeholder = "Email"
-                    onChangeText = {(email) => this.setState({email})}
-                    value = {this.state.email}
-                />
-                <Text style = {styles.errorText}>{this.state.emailError}</Text>
-    
-                <TextInput
-                    style = {styles.input}
-                    placeholder = "Password"
-                    secureTextEntry={true}
-                    onChangeText = {(password) => this.setState({password})}
-                    value = {this.state.password}
-                />
-                <Text style = {styles.errorText}>{this.state.passwordError}</Text>
-    
-                <TextInput
-                    style = {styles.input}
-                    placeholder = "Confirm Password"
-                    secureTextEntry={true}
-                    onChangeText = {(confirmPassword) => this.setState({confirmPassword})}
-                    value = {this.state.confirmPassword}
-                />
-                <Text style = {styles.errorText}>{this.state.confirmPasswordError}</Text>
-    
-                <TouchableOpacity style = {styles.button} onPress = {this._onPressButton}>
-                    <Text style = {styles.buttonText}>Sign Up</Text>
-                </TouchableOpacity>
-    
-                <Text style = {styles.successText}>{this.state.successMessage}</Text>
-    
-            </View >
-        );
-    
-    }
-    }
-    
-    const styles = StyleSheet.create ( {
+            if (!values.email)
+            {
+                errors.email = "Must enter email";
+            } else if (!EmailValidator.validate(values.email))
+            {
+                errors.email = "Must enter valid email";
+            }
+
+            if (!values.password)
+            {
+                errors.password = "Must enter password";
+            } else
+            {
+                const PASSWORD_REGEX = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
+                if (!PASSWORD_REGEX.test(values.password))
+                {
+                    errors.password =
+                        "Password isn't strong enough (One upper, one lower, one special, one number, at least 8 characters long)";
+                }
+            }
+
+            if (!values.confirmPassword)
+            {
+                errors.confirmPassword = "Must enter confirm password";
+            } else if (values.confirmPassword !== values.password)
+            {
+                errors.confirmPassword = "Passwords do not match";
+            }
+
+            return errors;
+        },
+        onSubmit: values =>
+        {
+            setSuccessMessage("");
+
+            fetch("http://localhost:3333/api/1.0.0/user", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    first_name: values.firstName,
+                    last_name: values.lastName,
+                    email: values.email,
+                    password: values.password
+                })
+            })
+                .then((response, error) =>
+                {
+                    console.log(error)
+                    console.log(response)
+
+
+                    if (response.ok)
+                    {
+                        navigation.navigate("Login");
+                        Alert.alert(
+                            "Success",
+                            `Successfully signed up with name: ${values.firstName} ${values.lastName}, email: ${values.email}`,
+                            [
+                                {
+                                    text: "OK",
+                                    onPress: () => navigation.navigate("Login")
+                                }
+                            ]
+                        );
+                        // Handle navigation here
+                    } else
+                    {
+                        Alert.alert(
+                            "Failed to login",
+                            [
+                                {
+                                    text: "OK",
+                                    onPress: () => navigation.navigate("Login")
+                                }
+                            ]
+                        );
+                        throw new Error("Failed to send data to API");
+                    }
+                })
+                .catch(error =>
+                {
+                    console.error(error);
+                });
+        }
+    });
+
+    return (
+        <View style={styles.container}>
+            <TextInput
+                style={styles.input}
+                placeholder="First Name"
+                onChangeText={formik.handleChange("firstName")}
+                value={formik.values.firstName}
+            />
+            <Text style={styles.errorText}>{formik.errors.firstName}</Text>
+
+            <TextInput
+                style={styles.input}
+                placeholder="Last Name"
+                onChangeText={formik.handleChange("lastName")}
+                value={formik.values.lastName}
+            />
+            <Text style={styles.errorText}>{formik.errors.lastName}</Text>
+
+            <TextInput
+                style={styles.input}
+                placeholder="Email"
+                onChangeText={formik.handleChange("email")}
+                value={formik.values.email}
+            />
+            <Text style={styles.errorText}>{formik.errors.email}</Text>
+
+            <TextInput
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry={true}
+                onChangeText={formik.handleChange("password")}
+                value={formik.values.password}
+            />
+            <Text style={styles.errorText}>{formik.errors.password}</Text>
+
+            <TextInput
+                style={styles.input}
+                placeholder="Confirm Password"
+                secureTextEntry={true}
+                onChangeText={formik.handleChange("confirmPassword")}
+                value={formik.values.confirmPassword}
+            />
+            <Text style={styles.errorText}>{formik.errors.confirmPassword}</Text>
+
+            <Button
+                title="Sign Up"
+                onPress={formik.handleSubmit}
+            />
+
+            <Text style={styles.successText}>{successMessage}</Text>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "lightblue",
     },
     input: {
         width: 300,
@@ -148,26 +185,32 @@ export default class SignUpScreen extends Component {
         borderWidth: 1,
         padding: 10,
         borderRadius: 5,
+        backgroundColor: "white"
     },
     errorText: {
-        color: 'red'
+        color: "red",
+        textAlign: "center"
     },
     button: {
-        backgroundColor: '#2196F3',
-        padding: 10,
-        borderRadius: 5,
-        marginTop: 10
+        width: "100%",
+        borderRadius: 25,
+        height: 50,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#2196F3",
+        marginBottom: 30,
+        marginTop: 30,
     },
     buttonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center'
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#fff",
     },
     successText: {
-        color: 'green',
-        fontWeight: 'bold',
+        color: "green",
+        fontWeight: "bold",
         marginTop: 10
     }
-    
-    })
-    
+});
+
+export default SignUpScreen;

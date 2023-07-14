@@ -1,6 +1,7 @@
-import React, { Component } from "react";
+import React from "react";
 import { Text, View, StyleSheet } from "react-native";
-const Contact = (props) => {
+const Contact = (props) =>
+{
   const { firstname, surname } = props;
   return (
     <View style={Styles.contactBorder}>

@@ -1,231 +1,160 @@
-import React, { Component } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Button } from 'react-native';
+import React from 'react';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, Alert,Button } from 'react-native';
+import { useFormik } from 'formik';
 import * as EmailValidator from 'email-validator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default class LoginScreen extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
+const LoginScreen = ({ navigation }) =>
+{
+  const formik = useFormik({
+    initialValues: {
       email: '',
       password: '',
-      emailError: '',
-      passwordError: '',
-      successMessage: '',
-      submitted: false,
-    };
+    },
+    validate: values =>
+    {
+      const errors = {};
 
-    this._onPressButton = this._onPressButton.bind(this);
-  }
+      if (!values.email)
+      {
+        errors.email = 'Must enter email';
+      } else if (!EmailValidator.validate(values.email))
+      {
+        errors.email = 'Must enter valid email';
+      }
 
-  _onPressButton() {
-    this.setState({
-      submitted: true,
-      emailError: '',
-      passwordError: '',
-      successMessage: '',
-    });
+      if (!values.password)
+      {
+        errors.password = 'Must enter password';
+      }
 
-    if (!(this.state.email && this.state.password)) {
-      this.setState({
-        emailError: 'Must enter email',
-        passwordError: 'Must enter password',
-      });
-      return;
-    }
+      return errors;
+    },
+    onSubmit: async values =>
+    {
+      try {
+        const response = await fetch('http://localhost:3333/api/1.0.0/login', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: values.email,
+            password: values.password,
+          }),
+        });
 
-    if (!EmailValidator.validate(this.state.email)) {
-      this.setState({ emailError: 'Must enter valid email' });
-      return;
-    }
-
-    const PASSWORD_REGEX = new RegExp(
-      '^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$',
-    );
-    if (!PASSWORD_REGEX.test(this.state.password)) {
-      this.setState({
-        passwordError:
-          "Password isn't strong enough (One upper, one lower, one special, one number, at least 8 characters long)",
-      });
-      return;
-    }
-
-    const { email, password } = this.state;
-    fetch('http://localhost:3333/api/1.0.0/login', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password,
-      }),
-    })
-      .then((response) => {
-        if (response.status === 200) {
-          return response.json();
-        } else if (response.status === 400) {
+        if (response.status === 200)
+        {
+          const responseJson = await response.json();
+          await AsyncStorage.setItem('whatsthat_session_token', responseJson.token);
+          Alert.alert(
+            'Success',
+            `Successfully logged in with email: ${values.email}`,
+            [
+              {
+                text: 'OK',
+                onPress: () => navigation.navigate('LoggedInNav')
+              }
+            ]
+          );
+        } else if (response.status === 400)
+        {
           throw new Error('Invalid email or password');
-        } else {
+        } else
+        {
           throw new Error('Something went wrong');
         }
-      })
-      .then(async (responseJson) => {
-        console.log(responseJson);
-        await AsyncStorage.setItem('whatsthat_session_token', responseJson.token);
-        this.props.navigation.navigate('LoggedInNav');
-      })
-      .catch((error) => {
-        console.log(error);
-        this.setState({ passwordError: error.message });
-      });
-  }
-
-
-    render(){
-
-const navigation = this.props.navigation;
-
-        return (
-            <View style={styles.container}>
-
-                <View style={styles.formContainer}>
-                    <View style={styles.emailLabel}>
-                        <Text>Email:</Text> 
-                        </View>
-                        <View style={styles.email}>
-                        <TextInput
-                            style={{height: 40, borderWidth: 1, width: "100%"}}
-                            placeholder="Enter email"
-                            onChangeText={email => this.setState({email})}
-                            defaultValue={this.state.email}
-                        />
-
-                        <>
-                            {this.state.submitted && !this.state.email &&
-                                <Text style={styles.error}>*Email is required</Text>
-                            }
-                            {this.state.emailError !== "" &&
-                                <Text style={styles.error}>{this.state.emailError}</Text>
-                            }
-                        </>
-                    </View>
-                    <View style={styles.passwordLabel}>
-                        <Text>Password:</Text> 
-                        </View>
-                    <View style={styles.password}>
-                        <TextInput
-                            style={{height: 40, borderWidth: 1, width: "100%"}}
-                            placeholder="Enter password"
-                            onChangeText={password => this.setState({password})}
-                            defaultValue={this.state.password}
-                            secureTextEntry
-                        />
-
-                        <>
-                            {this.state.submitted && !this.state.password &&
-                                <Text style={styles.error}>*Password is required</Text>
-                            }
-                            {this.state.passwordError !== "" &&
-                                <Text style={styles.error}>{this.state.passwordError}</Text>
-                            }
-                        </>
-                    </View>
-            
-                    <View style={styles.loginbtn}>
-                        <TouchableOpacity onPress={this._onPressButton}>
-                            <View style={styles.button}>
-                                <Text style={styles.buttonText}>Login</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-
-                    <>
-                        {this.state.successMessage !== "" &&
-                            <Text style={styles.success}>{this.state.successMessage}</Text>
-                        }
-                    </>
-                   
-                
-                 <Button
-           title="Need an account?"
-            onPress={() => this.props.navigation.navigate('SignUp')}
- />
-
-
-                </View>
-            </View>
-        )
+      } catch (error) {
+        Alert.alert(
+          'Error',
+          error.message,
+          [
+            {
+              text: 'OK'
+            }
+          ]
+        );
+      }
     }
+  });
 
-}
+  return (
+    <View style={styles.container}>
+      <View style={styles.formContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter email"
+          onChangeText={formik.handleChange('email')}
+          value={formik.values.email}
+        />
+        {formik.touched.email && formik.errors.email && <Text style={styles.errorText}>{formik.errors.email}</Text>}
 
+        <TextInput
+          style={styles.input}
+          placeholder="Enter password"
+          onChangeText={formik.handleChange('password')}
+          value={formik.values.password}
+          secureTextEntry
+        />
+        {formik.touched.password && formik.errors.password && <Text style={styles.errorText}>{formik.errors.password}</Text>}
+
+        <TouchableOpacity onPress={formik.handleSubmit}>
+          <View style={{...styles.button,width:300}}>
+            <Text style={styles.buttonText}>Login</Text>
+          </View>
+        </TouchableOpacity>
+
+        <Button
+          title="Need An Account?"
+          onPress={() => navigation.navigate('SignUp')}
+        />
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "lightblue",
-    },
-    formContainer: {
-        width: "75%",
-      alignItems: "center",
-      justifyContent: "center",
-    },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'lightblue',
+  },
+  formContainer: {
+    width: '75%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    width: 300,
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: 'white',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+  },
+  button: {
+    width: '100%',
+    borderRadius: 25,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2196F3',
+    marginBottom: 30,
+    marginTop: 30,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+});
 
-    emailLabel: {
-
-    },
-    email: {
-      marginBottom: 10,
-      width: "100%",
-      backgroundColor:"white",
-
-    },
-
-    passwordLabel: {
-
-    },
-    password: {
-      marginBottom: 20,
-      width: "100%",
-      backgroundColor:"white",
-    },
-    button: {
-      width: "100%",
-      borderRadius: 25,
-      height: 50,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#2196F3",
-      marginBottom: 30,
-    },
-    buttonText: {
-      fontSize: 18,
-      fontWeight: "bold",
-      color: "#fff",
-    },
-    error: {
-      color: "red",
-      fontWeight: "bold",
-      marginBottom: 10,
-    },
-    success: {
-      color: "green",
-      fontWeight: "bold",
-      marginBottom: 10,
-    },
-    signUp: {
-      marginTop: 20,
-      color: "#2196F3",
-      fontWeight: "bold",
-      textDecorationLine: "underline",
-    },
-    loginbtn: {
-width: "80%"
-    },
-  });
-  
+export default LoginScreen;

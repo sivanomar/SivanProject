@@ -1,19 +1,19 @@
 import React from "react";
-import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-import SignUp from "./components/signupScreen";
+import SignUp from "./components/SignupScreen";
 import ContactScreen from "./components/contactScreen";
-import Login from "./components/loginScreen";
-import FlatListDemo from "./components/flatlistdemo";
+import Login from "./components/LoginScreen";
+import FlatListDemo from "./components/Flatlistdemo";
 import Logout from "./components/Logout";
 
 const Stack = createStackNavigator();
 const BottomTab = createBottomTabNavigator();
 
-function LoggedInNav() {
+function LoggedInNav()
+{
   return (
     <BottomTab.Navigator
       initialRouteName="Contact"
@@ -26,7 +26,8 @@ function LoggedInNav() {
   );
 }
 
-function App() {
+function App()
+{
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
