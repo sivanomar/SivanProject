@@ -2,11 +2,10 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-
-import SignUp from "./components/SignupScreen";
+import SignupScreen from "./components/SignupScreen";
 import ContactScreen from "./components/contactScreen";
 import Login from "./components/LoginScreen";
-import FlatListDemo from "./components/Flatlistdemo";
+import FlatListDemo from "./components/chat";
 import Logout from "./components/Logout";
 
 const Stack = createStackNavigator();
@@ -16,11 +15,11 @@ function LoggedInNav()
 {
   return (
     <BottomTab.Navigator
-      initialRouteName="Contact"
+      initialRouteName="Contacts"
       screenOptions={{ headerShown: true }}
     >
-      <BottomTab.Screen name="Contact" component={ContactScreen} />
-      <BottomTab.Screen name="FlatList" component={FlatListDemo} />
+      <BottomTab.Screen name="Contacts" component={ContactScreen} />
+      <BottomTab.Screen name="Chat" component={FlatListDemo} />
       <BottomTab.Screen name="Logout" component={Logout} />
     </BottomTab.Navigator>
   );
@@ -30,7 +29,7 @@ function App()
 {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
+      <Stack.Navigator initialRouteName="LoggedInNav">
 
         <Stack.Screen
           name="Logout"
@@ -54,7 +53,7 @@ function App()
         />
         <Stack.Screen
           name="SignUp"
-          component={SignUp}
+          component={SignupScreen}
           options={{ title: "Sign Up Screen" }}
         />
       </Stack.Navigator>

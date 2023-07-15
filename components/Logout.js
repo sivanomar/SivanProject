@@ -1,66 +1,69 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native-web";
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const Logout = (props) => {
+const Logout = ({ navigation }) => {
   const logout = async () => {
-    console.log("Logout");
-    const { navigation } = props;
-    const token = await AsyncStorage.getItem("whatsthat_session_token");
-    if (!token) throw new Error("No session token found");
-    return fetch("http://localhost:3333/api/1.0.0/logout", {
-      method: "POST",
-      headers: { "X-Authorization": token },
-    })
-      .then(async (response) => {
-        if (response.status === 200) {
-          await AsyncStorage.removeItem("whatsthat_session_token");
-          await AsyncStorage.removeItem("whatsthat_user_id");
-          navigation.navigate("Login");
-        } else if (response.status === 401) {
-          console.log("Unauthorized");
-          await AsyncStorage.removeItem("whatsthat_session_token");
-          await AsyncStorage.removeItem("whatsthat_user_id");
-          navigation.navigate("Login");
-        } else throw new Error("Something went wrong");
-      })
-      .catch((error) => {
-        console.log(error);
+    try {
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+      if (!token) throw new Error('No session token found');
+
+      const response = await fetch('http://localhost:3333/api/1.0.0/logout', {
+        method: 'POST',
+        headers: { 'X-Authorization': token },
       });
+
+      if (response.status === 200 || response.status === 401) {
+        await AsyncStorage.removeItem('whatsthat_session_token');
+        await AsyncStorage.removeItem('whatsthat_user_id');
+        navigation.navigate('Login');
+      } else {
+        throw new Error('Something went wrong');
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
+
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <TouchableOpacity
-        style={{ paddingLeft: 10, paddingRight: 10, paddinghorizontal: 20 }}
-        onPress={() => {
-          navigation.navigate("Profile");
-        }}
-      >
-        <View style={Styles.btn}>
-          <Text style={Styles.btnText}>My Profile</Text>
+    <View style={styles.container}>
+      <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+        <View style={styles.button}>
+          <Text style={styles.buttonText}>My Profile</Text>
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={{ paddingLeft: 10, paddingRight: 10, paddinghorizontal: 20 }}
-        onPress={() => logout()}
-      >
-        <View style={Styles.btn}>
-          <Text style={Styles.btnText}>Logout</Text>
+      <TouchableOpacity onPress={logout}>
+        <View style={styles.button}>
+          <Text style={styles.buttonText}>Logout</Text>
         </View>
       </TouchableOpacity>
     </View>
   );
 };
-export default Logout;
-const Styles = StyleSheet.create({
-  btn: {
-    backgroundColor: "darkblue",
-    margin: 15,
-    width: "82vw",
-    borderRadius: 25,
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'lightblue',
+
+    alignItems: 'center',
   },
-  btnText: {
-    textAlign: "center",
-    padding: 10,
-    color: "white",
+  button: {
+    width: 300,
+    borderRadius: 25,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2196F3',
+    marginBottom: 30,
+    marginTop: 30,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });
+
+export default Logout;

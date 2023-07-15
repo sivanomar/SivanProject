@@ -49,6 +49,7 @@ const LoginScreen = ({ navigation }) =>
         {
           const responseJson = await response.json();
           await AsyncStorage.setItem('whatsthat_session_token', responseJson.token);
+          navigation.navigate('LoggedInNav')
           Alert.alert(
             'Success',
             `Successfully logged in with email: ${values.email}`,
@@ -131,8 +132,8 @@ const styles = StyleSheet.create({
     width: 300,
     height: 40,
     margin: 12,
-    borderWidth: 1,
     padding: 10,
+    borderWidth: 1,
     borderRadius: 5,
     backgroundColor: 'white',
   },
