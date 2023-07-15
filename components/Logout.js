@@ -27,7 +27,7 @@ const Logout = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Update Profile')}>
         <View style={styles.button}>
           <Text style={styles.buttonText}>My Profile</Text>
         </View>

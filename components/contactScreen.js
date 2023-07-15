@@ -1,177 +1,251 @@
-import React, { useState, useEffect } from "react";
-import
-  {
-    View,
-    Text,
-    FlatList,
-    StyleSheet,
-    SafeAreaView,
-    TouchableOpacity,
-    TextInput,
-  } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Contact from "./Contact";
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ContactScreen = () =>
+const SearchScreen = () =>
 {
-  const [contacts, setContacts] = useState([]);
-  const [searchString, setSearchString] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorState, setErrorState] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchText,] = useState('');
+  const [filter,] = useState('all');
+  const [data, setData] = useState([]);
+  const [offset, setOffset] = useState(0);
 
   useEffect(() =>
   {
-    getContacts();
+    fetchData(true, searchText, filter);
   }, []);
 
-  const getContacts = async () =>
+  const fetchData = async (isFilter, searchText, filter) =>
   {
     try
     {
-      const token = await AsyncStorage.getItem("whatsthat_session_token");
-      if (!token)
-      {
-        // throw new Error("No session token found");
-      }
-return
-      const response = await fetch("http://localhost:3333/api/1.0.0/contacts", {
-        method: "GET",
+      setIsLoading(true);
+
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+
+      const response = await fetch(`http://localhost:3333/api/1.0.0/contacts`, {
+        method: 'GET',
         headers: {
-          "X-Authorization": token,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
         },
       });
 
       if (response.status === 200)
       {
-        const data = await response.json();
-        setContacts(data);
-      } else if (response.status === 401)
-      {
-        throw new Error("Unauthorized");
-      } else if (response.status === 500)
-      {
-        // throw new Error("Server error");
+        const searchData = await response.json();
+        setData(() => [...searchData]);
       } else
       {
-        // throw new Error("Something went wrong");
+        throw new Error('Something went wrong');
       }
     } catch (error)
     {
-      console.log(error);
+      Alert.alert('Error', error.message, [
+        {
+          text: 'OK',
+        },
+      ]);
+    } finally
+    {
+      setIsLoading(false);
     }
   };
 
-  const searchContact = async () =>
+  const handleLoadMore = () =>
+  {
+    console.log('Loading more');
+    // setOffset(prevOffset => prevOffset + 1);
+  };
+
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      <Text>{item.first_name} {item.last_name}</Text>
+      <Text>{item.email}</Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <TouchableOpacity
+          style={{ ...styles.addButton, backgroundColor: "red" }}
+          onPress={() => deleteUser(item.user_id)}
+        >
+          <Text style={styles.buttonText}>Delete User</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => blockUser(item.user_id)}
+        >
+          <Text style={styles.buttonText}>Block User</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const blockUser = async (userId) =>
   {
     try
     {
-      const token = await AsyncStorage.getItem("whatsthat_session_token");
-      if (!token)
-      {
-        // throw new Error("No session token found");
-      }
+      setIsLoading(true);
 
-      const response = await fetch(
-        `http://localhost:3333/api/1.0.0/search?q=${searchString}&search_in=contacts&limit=20&offset=${offset}`,
-        {
-          method: "GET",
-          headers: {
-            "X-Authorization": token,
-          },
-        }
-      );
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+
+      const response = await fetch(`http://localhost:3333/api/1.0.0/user/${userId}/block`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+      });
 
       if (response.status === 200)
       {
-        const newData = await response.json();
-        const currentUser = await AsyncStorage.getItem("whatsthat_user_id");
-        const filteredData = newData.filter(
-          (obj) => parseInt(obj.user_id, 10) !== parseInt(currentUser, 10)
-        );
-        setContacts(filteredData);
-      } else if (response.status === 401)
-      {
-        throw new Error("Unauthorized");
-      } else if (response.status === 500)
-      {
-        throw new Error("Server error");
+        fetchData(true, searchText, filter);
+
+        Alert.alert('Success', 'User blocked successfully');
       } else
       {
-        throw new Error("Something went wrong");
+        throw new Error('Something went wrong');
       }
     } catch (error)
     {
-      console.log(error);
+      Alert.alert('Error', error.message, [
+        {
+          text: 'OK',
+        },
+      ]);
+    } finally
+    {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteUser = async (userId) =>
+  {
+    try
+    {
+      setIsLoading(true);
+
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+
+      const response = await fetch(`http://localhost:3333/api/1.0.0/user/${userId}/contact`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+      });
+
+      if (response.status === 200)
+      {
+        fetchData(true, searchText, filter);
+
+        Alert.alert('Success', 'User deleted successfully');
+        // Remove the deleted user from the data array
+        setData(prevData => prevData.filter(item => item.user_id !== userId));
+      } else
+      {
+        throw new Error('Something went wrong');
+      }
+    } catch (error)
+    {
+      Alert.alert('Error', error.message, [
+        {
+          text: 'OK',
+        },
+      ]);
+    } finally
+    {
+      setIsLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.searchWrapper}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search Contacts"
-          onChangeText={(value) => setSearchString(value)}
-          value={searchString}
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={{ ...styles.addButton, marginVertical: 10 }}
+        onPress={() => addUserContact(item.user_id)}
+      >
+        <Text style={styles.buttonText}>Show Blocked User</Text>
+      </TouchableOpacity>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
+      ) : (
+        <FlatList
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.user_id.toString()}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          contentContainerStyle={styles.flatListContent}
         />
-        <TouchableOpacity onPress={searchContact}>
-          <View style={styles.searchBtn}>
-            <Text style={styles.btnText}>Search</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        data={contacts}
-        renderItem={({ item: data }) => (
-          <TouchableOpacity>
-            <Contact
-              firstname={data.first_name || data.given_name}
-              surname={data.last_name || data.family_name}
-            />
-          </TouchableOpacity>
-        )}
-        keyExtractor={(data) => data.user_id.toString()}
-      />
-    </SafeAreaView>
+      )}
+    </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "lightblue",
+    backgroundColor: 'lightblue',
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  searchWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 5,
-    color:"white",
+  searchInput: {
+    width: '100%',
+    height: 40,
+    marginBottom: 10,
+    padding: 10,
     borderWidth: 1,
     borderRadius: 5,
     backgroundColor: 'white',
   },
-  searchInput: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    padding: 10,
-    margin: 5,
-    width: "75vw",
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
   },
-  searchBtn: {
+  filterOption: {
+    flex: 1,
+    marginHorizontal: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  option: {
+    color: 'black',
+  },
+  selectedOption: {
+    color: 'white',
+    backgroundColor: 'blue',
+  },
+  flatListContent: {
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: 'white',
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 5,
+  },
+  addButton: {
+    marginTop: 10,
     backgroundColor: '#2196F3',
-    margin: 5,
-    width: "20vw",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  btnText: {
     padding: 10,
-    color: "white",
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  activityIndicator: {
+    marginVertical: 20,
   },
 });
 
-export default ContactScreen;
+export default SearchScreen;

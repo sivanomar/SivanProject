@@ -49,6 +49,8 @@ const LoginScreen = ({ navigation }) =>
         {
           const responseJson = await response.json();
           await AsyncStorage.setItem('whatsthat_session_token', responseJson.token);
+          await AsyncStorage.setItem('user_id', responseJson.id);
+
           navigation.navigate('LoggedInNav')
           Alert.alert(
             'Success',
