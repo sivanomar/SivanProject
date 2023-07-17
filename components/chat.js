@@ -1,119 +1,140 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AntDesign } from '@expo/vector-icons';
 
-const Chat = () =>
+const ChatList = ({ navigation }) =>
 {
-  const [conversation, setConversation] = useState([
-    { id: 8, user_id: 2, name: "Ronan", message: "Am I your fire? Your one desire?" },
-    { id: 9, user_id: 1, name: "Ash", message: "No, don't call here no more creep!" },
-  ]);
-  const [messageText, setMessageText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [chats, setChats] = useState([]);
 
-  const sendMessage = () =>
+  useEffect(() =>
   {
-    if (messageText.trim() === '')
+    fetchChats();
+  }, []);
+
+  const fetchChats = async () =>
+  {
+    try
     {
-      return;
+      setIsLoading(true);
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+      const response = await fetch('http://localhost:3333/api/1.0.0/chat', {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+      });
+
+      if (response.status === 200)
+      {
+        const chatData = await response.json();
+        setChats(chatData);
+      } else
+      {
+        throw new Error('Something went wrong');
+      }
+    } catch (error)
+    {
+      console.error('Error', error.message);
+    } finally
+    {
+      setIsLoading(false);
     }
-    const newMessage = {
-      id: Math.random().toString(36).substring(7),
-      user_id: 1,
-      name: "Ash",
-      message: messageText
-    };
-    setConversation([...conversation, newMessage]);
-    setMessageText('');
   };
+
+
+
+  const renderChat = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
+      <Text><Text style={{ fontWeight: "bold" }}>Creator Name: </Text>{item.creator.first_name}</Text>
+      <Text><Text style={{ fontWeight: "bold" }}>Last Message:</Text> {item.last_message.message ?? ""}</Text>
+
+      <TouchableOpacity style={styles.deleteButton} onPress={() => { }}>
+        <Text style={styles.buttonText}>Edit Chat Names</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <View style={[styles.wrapper, { height: "80%" }]}>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => navigation.navigate('CreateChat')}
+      >
+        <Text style={styles.buttonText}>Create Chat</Text>
+      </TouchableOpacity>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
+      ) : chats.length > 0 ? (
         <FlatList
-          data={conversation}
-          renderItem={({ item }) => (
-            <View style={[styles.message, item.user_id === 1 ? styles.other : styles.from_me]}>
-              <Text style={styles.author}>{item.name}</Text>
-              <Text style={styles.content}>{item.message}</Text>
-            </View>
-          )}
-          keyExtractor={item => item.id.toString()}
+          data={chats}
+          renderItem={renderChat}
+          keyExtractor={(item) => item.chat_id.toString()}
+          contentContainerStyle={styles.flatListContent}
         />
-      </View>
-      <View style={[styles.inputWrapper, { height: "20%" }]}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message"
-          onChangeText={text => setMessageText(text)}
-          value={messageText}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
-      </View>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <AntDesign name="frowno" size={48} color="gray" />
+          <Text style={styles.emptyText}>No Chats Found</Text>
+        </View>
+      )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = {
   container: {
     flex: 1,
-    backgroundColor: "lightblue",
-    height: "100vh"
+    backgroundColor: 'lightblue',
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  wrapper: {
-    flex: 1,
-  },
-  message: {
-    borderRadius: 15,
-    padding: 5,
-    margin: 5,
-    width: '60%'
-  },
-  author: {
-    fontWeight: 'bold',
-    color: '#333'
-  },
-  content: {
-    fontStyle: 'italic',
-    color: '#ffffff'
-  },
-  other: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'limegreen',
-  },
-  from_me: {
-    backgroundColor: 'skyblue'
-  },
-  inputWrapper: {
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#cccccc',
-    padding: 10,
-  },
-  input: {
-    width: "95%",
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
+  createButton: {
+    marginVertical: 10,
+    backgroundColor: '#2196F3',
     padding: 10,
     borderRadius: 5,
-    backgroundColor: 'white',
-  },
-  sendButton: {
-    width: '100%',
-    borderRadius: 25,
-    height: 50,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2196F3',
-    marginBottom: 10,
-    marginTop: 10,
+    width: '100%',
   },
-  sendButtonText: {
-    fontSize: 18,
+  buttonText: {
+    color: 'white',
     fontWeight: 'bold',
-    color: '#fff',
-  }
-});
+  },
+  card: {
+    backgroundColor: 'white',
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 5,
+  },
+  deleteButton: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    backgroundColor: "#2196F3",
 
-export default Chat;
+  },
+  activityIndicator: {
+    marginVertical: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    marginTop: 10,
+    color: 'gray',
+    fontSize: 16,
+  },
+  flatListContent: {
+    paddingBottom: 20,
+  },
+};
+
+export default ChatList;

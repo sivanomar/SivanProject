@@ -6,9 +6,16 @@ import SignupScreen from "./components/SignupScreen";
 import ContactScreen from "./components/ContactScreen";
 import LoginScreen from "./components/LoginScreen";
 import UpdateProfile from "./components/UpdateProfile";
-import FlatListDemo from "./components/chat";
+import FlatListDemo from "./components/Chat";
 import Logout from "./components/Logout";
+import BlockedUsers from "./components/BlockedUsers";
 import SearchContacts from "./components/SearchContacts";
+import ChatList from "./components/Chat";
+import SendMessage from "./components/SendMessage";
+import CreateChat from "./components/CreateChat";
+
+
+
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -20,7 +27,7 @@ function LoggedInNav()
 {
   return (
     <BottomTab.Navigator
-      initialRouteName="Contacts"
+      initialRouteName="Chats"
       screenOptions={({ route }) => ({
         headerShown: true,
         tabBarIcon: ({ focused, color, size }) =>
@@ -50,6 +57,10 @@ function LoggedInNav()
       <BottomTab.Screen name="Chat" component={FlatListDemo} />
       <BottomTab.Screen name="Search Contacts" component={SearchContacts} />
       <BottomTab.Screen name="Logout" component={Logout} />
+      <BottomTab.Screen name="Blocked Users" component={BlockedUsers} />
+      <BottomTab.Screen name="Chats" component={ChatList} />
+      <BottomTab.Screen name="Create Chat" component={SendMessage} />
+
 
 
     </BottomTab.Navigator>
@@ -86,7 +97,7 @@ function App()
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Search Contacts">
+      <Stack.Navigator initialRouteName="LoggedInNav">
         <Stack.Screen
           name="LoggedInNav"
           component={LoggedInNav}
