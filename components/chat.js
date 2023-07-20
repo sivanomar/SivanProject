@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AntDesign } from '@expo/vector-icons';
 
@@ -7,6 +7,9 @@ const ChatList = ({ navigation }) =>
 {
   const [isLoading, setIsLoading] = useState(false);
   const [chats, setChats] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editedChatName, setEditedChatName] = useState('');
+  const [currentChatId, setCurrentChatId] = useState(null);
 
   useEffect(() =>
   {
@@ -45,26 +48,82 @@ const ChatList = ({ navigation }) =>
     }
   };
 
+  const handleEditChatNames = (chatId, chatName) =>
+  {
+    setIsModalVisible(true);
+    setCurrentChatId(chatId);
+    setEditedChatName(chatName);
+  };
 
+  const handleUpdateChat = async () =>
+  {
+    if (editedChatName.trim() === '')
+    {
+      return;
+    }
+
+    try
+    {
+      setIsLoading(true);
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+
+      const response = await fetch(`http://localhost:3333/api/1.0.0/chat/${currentChatId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+        body: JSON.stringify({
+          name: editedChatName,
+        }),
+      });
+
+      if (response.ok)
+      {
+        setIsModalVisible(false);
+        fetchChats();
+      } else
+      {
+        throw new Error('Failed to update chat name');
+      }
+    } catch (error)
+    {
+      console.error('Error', error.message);
+    } finally
+    {
+      setIsLoading(false);
+    }
+  };
 
   const renderChat = ({ item }) => (
     <View style={styles.card}>
-      <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
-      <Text><Text style={{ fontWeight: "bold" }}>Creator Name: </Text>{item.creator.first_name}</Text>
-      <Text><Text style={{ fontWeight: "bold" }}>Last Message:</Text> {item.last_message.message ?? ""}</Text>
+      <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+      <Text>
+        <Text style={{ fontWeight: 'bold' }}>Creator Name: </Text>
+        {item.creator.first_name}
+      </Text>
+      <Text>
+        <Text style={{ fontWeight: 'bold' }}>Last Message:</Text> {item.last_message.message ?? ''}
+      </Text>
 
-      <TouchableOpacity style={styles.deleteButton} onPress={() => { }}>
-        <Text style={styles.buttonText}>Edit Chat Names</Text>
-      </TouchableOpacity>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <TouchableOpacity style={{ ...styles.deleteButton, backgroundColor: "green" }} onPress={() => handleEditChatNames(item.chat_id, item.name)}>
+          <Text style={styles.buttonText}>Edit Chat Name</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() =>
+        {
+          navigation.navigate('Add User In Chat', { chatId: item.chat_id });
+        }}>
+          <Text style={styles.buttonText}>Add Users</Text>
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={() => navigation.navigate('CreateChat')}
-      >
+      <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('Create Chat')}>
         <Text style={styles.buttonText}>Create Chat</Text>
       </TouchableOpacity>
       {isLoading ? (
@@ -82,11 +141,34 @@ const ChatList = ({ navigation }) =>
           <Text style={styles.emptyText}>No Chats Found</Text>
         </View>
       )}
+
+      <Modal visible={isModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TextInput
+              style={styles.input}
+              placeholder="Chat Name"
+              onChangeText={(text) => setEditedChatName(text)}
+              value={editedChatName}
+            />
+            <TouchableOpacity style={styles.updateButton} onPress={handleUpdateChat}>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.buttonText}>Update</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'lightblue',
@@ -116,8 +198,7 @@ const styles = {
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    backgroundColor: "#2196F3",
-
+    backgroundColor: '#2196F3',
   },
   activityIndicator: {
     marginVertical: 20,
@@ -135,6 +216,37 @@ const styles = {
   flatListContent: {
     paddingBottom: 20,
   },
-};
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+  },
+  input: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: 'gray',
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  updateButton: {
+    backgroundColor: '#2196F3',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#FF0000',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+});
 
 export default ChatList;

@@ -13,6 +13,8 @@ import SearchContacts from "./components/SearchContacts";
 import ChatList from "./components/Chat";
 import SendMessage from "./components/SendMessage";
 import CreateChat from "./components/CreateChat";
+import AddUsersInChat from "./components/AddUsersInChat";
+
 
 
 
@@ -56,11 +58,12 @@ function LoggedInNav()
       <BottomTab.Screen name="Contacts" component={ContactScreen} />
       <BottomTab.Screen name="Chat" component={FlatListDemo} />
       <BottomTab.Screen name="Search Contacts" component={SearchContacts} />
-      <BottomTab.Screen name="Logout" component={Logout} />
-      <BottomTab.Screen name="Blocked Users" component={BlockedUsers} />
+      {/* <BottomTab.Screen name="Logout" component={Logout} /> */}
+      {/* <BottomTab.Screen name="Blocked Users" component={BlockedUsers} /> */}
       <BottomTab.Screen name="Chats" component={ChatList} />
-      <BottomTab.Screen name="Create Chat" component={SendMessage} />
-
+      <BottomTab.Screen name="Create Chat" component={CreateChat} />
+      
+      <BottomTab.Screen name="Add User In Chat" component={AddUsersInChat} />
 
 
     </BottomTab.Navigator>
