@@ -62,6 +62,7 @@ function LoggedInNav()
       {/* <BottomTab.Screen name="Blocked Users" component={BlockedUsers} /> */}
       <BottomTab.Screen name="Chats" component={ChatList} />
       <BottomTab.Screen name="Create Chat" component={CreateChat} />
+      <BottomTab.Screen name="Send Message" component={SendMessage} />
       
       <BottomTab.Screen name="Add User In Chat" component={AddUsersInChat} />
 

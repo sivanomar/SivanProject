@@ -112,6 +112,12 @@ const ChatList = ({ navigation }) =>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={() =>
         {
+          navigation.navigate('Send Message', { chatId: item.chat_id });
+        }}>
+          <Text style={styles.buttonText}>View</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() =>
+        {
           navigation.navigate('Add User In Chat', { chatId: item.chat_id });
         }}>
           <Text style={styles.buttonText}>Add Users</Text>
