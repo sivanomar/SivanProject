@@ -7,12 +7,16 @@ const Chat = ({ route }) =>
   const [conversation, setConversation] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [user_id, setuser_id] = useState(null);
+  const [message_id, setmessage_id] = useState(null)
 
   const chatId = route?.params?.chatId ?? null;
 
-  useEffect(() =>
+  useEffect(async () =>
   {
     fetchChatDetails();
+    const user_id = await AsyncStorage.getItem('user_id');
+    setuser_id(user_id)
   }, []);
 
   const fetchChatDetails = async () =>
@@ -53,6 +57,12 @@ const Chat = ({ route }) =>
   {
     try
     {
+      if (message_id)
+      {
+        updateMessage(message_id, messageText)
+        return
+
+      }
       setIsLoading(true);
       const token = await AsyncStorage.getItem('whatsthat_session_token');
 
@@ -83,7 +93,8 @@ const Chat = ({ route }) =>
           },
         };
 
-        setConversation(prevConversation => [...prevConversation, newMessage]);
+        fetchChatDetails();
+
         setMessageText('');
         console.log('Message sent successfully');
       } else
@@ -169,11 +180,15 @@ const Chat = ({ route }) =>
     {
       setIsLoading(false);
     }
+    setmessage_id(null)
+    setMessageText("")
   };
 
   const renderMessage = ({ item }) =>
   {
-    const isOwnMessage = item.author.user_id === 14; // Replace with the actual user_id of the logged-in user
+    const isOwnMessage = item.author.user_id == user_id; // Replace with the actual user_id of the logged-in user
+    console.log("isOwnMessage", isOwnMessage)
+    console.log("isOwnMessage 2", user_id)
 
     return (
       <View style={[styles.message, isOwnMessage ? styles.from_me : styles.from_other]}>
@@ -187,7 +202,11 @@ const Chat = ({ route }) =>
         {isOwnMessage && (
           <TouchableOpacity
             style={styles.updateButton}
-            onPress={() => setMessageText(item.message)}
+            onPress={() =>
+            {
+              setmessage_id(item.message_id)
+              setMessageText(item.message)
+            }}
           >
             <Text style={styles.buttonText}>Update</Text>
           </TouchableOpacity>

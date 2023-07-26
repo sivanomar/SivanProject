@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Alert, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
+import { AntDesign } from '@expo/vector-icons';
 
-const SearchScreen = () =>
+const SearchScreen = ({ navigation }) =>
 {
   const [isLoading, setIsLoading] = useState(false);
   const [searchText,] = useState('');
   const [filter,] = useState('all');
   const [data, setData] = useState([]);
   const [offset, setOffset] = useState(0);
+  const isFocused = useIsFocused();
 
   useEffect(() =>
   {
     fetchData(true, searchText, filter);
-  }, []);
+  }, [isFocused]);
 
   const fetchData = async (isFilter, searchText, filter) =>
   {
@@ -164,10 +167,16 @@ const SearchScreen = () =>
     <View style={styles.container}>
       <TouchableOpacity
         style={{ ...styles.addButton, marginVertical: 10 }}
-        onPress={() => addUserContact(item.user_id)}
+        onPress={() => { navigation.navigate('Blocked Users') }}
       >
         <Text style={styles.buttonText}>Show Blocked User</Text>
       </TouchableOpacity>
+      {
+        data && data.length === 0 &&
+        <View style={styles.emptyContainer}>
+          <AntDesign name="frowno" size={48} color="gray" />
+          <Text style={styles.emptyText}>No Contact Found</Text>
+        </View>}
       {isLoading ? (
         <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
       ) : (
@@ -180,6 +189,7 @@ const SearchScreen = () =>
           contentContainerStyle={styles.flatListContent}
         />
       )}
+
     </View>
   );
 };
@@ -245,6 +255,11 @@ const styles = StyleSheet.create({
   },
   activityIndicator: {
     marginVertical: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

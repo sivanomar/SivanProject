@@ -1,7 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import SignupScreen from "./components/SignupScreen";
 import ContactScreen from "./components/ContactScreen";
 import LoginScreen from "./components/LoginScreen";
@@ -15,23 +18,58 @@ import SendMessage from "./components/SendMessage";
 import CreateChat from "./components/CreateChat";
 import AddUsersInChat from "./components/AddUsersInChat";
 
-
-
-
-
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 const Stack = createStackNavigator();
 const BottomTab = createBottomTabNavigator();
+
+function PrivateRoutes()
+{
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="LoggedInNav"
+        component={LoggedInNav}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Update Profile"
+        component={UpdateProfile}
+        options={{ title: "Update Profile" }}
+      />
+      <Stack.Screen
+        name="Blocked Users"
+        component={BlockedUsers}
+        options={{ title: "Blocked Users" }}
+      />
+      <Stack.Screen
+        name="Chats"
+        component={ChatList}
+        options={{ title: "Chats" }}
+      />
+      <Stack.Screen
+        name="Create Chat"
+        component={CreateChat}
+        options={{ title: "Create Chat" }}
+      />
+      <Stack.Screen
+        name="Send Message"
+        component={SendMessage}
+        options={{ title: "Send Message" }}
+      />
+      <Stack.Screen
+        name="Add User In Chat"
+        component={AddUsersInChat}
+        options={{ title: "Add User In Chat" }}
+      />
+    </Stack.Navigator>
+  );
+}
 
 function LoggedInNav()
 {
   return (
     <BottomTab.Navigator
-      initialRouteName="Chats"
+      initialRouteName="Contacts"
       screenOptions={({ route }) => ({
-        headerShown: true,
         tabBarIcon: ({ focused, color, size }) =>
         {
           let iconName;
@@ -50,29 +88,25 @@ function LoggedInNav()
             iconName = focused ? "search" : "search-outline";
           }
 
-
           return <Ionicons name={iconName} size={20} color={color} />;
         },
       })}
     >
       <BottomTab.Screen name="Contacts" component={ContactScreen} />
       <BottomTab.Screen name="Chat" component={FlatListDemo} />
-      <BottomTab.Screen name="Search Contacts" component={SearchContacts} />
-      {/* <BottomTab.Screen name="Logout" component={Logout} /> */}
-      {/* <BottomTab.Screen name="Blocked Users" component={BlockedUsers} /> */}
-      <BottomTab.Screen name="Chats" component={ChatList} />
-      <BottomTab.Screen name="Create Chat" component={CreateChat} />
-      <BottomTab.Screen name="Send Message" component={SendMessage} />
-      
-      <BottomTab.Screen name="Add User In Chat" component={AddUsersInChat} />
-
-
+      <BottomTab.Screen
+        name="Search Contacts"
+        component={SearchContacts}
+      />
+      <BottomTab.Screen name="Logout" component={Logout} />
     </BottomTab.Navigator>
   );
 }
 
 function App()
 {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   useEffect(() =>
   {
     checkToken();
@@ -86,12 +120,10 @@ function App()
 
       if (token)
       {
-        // Token found, navigate to private route
-        // navigation.navigate("LoggedInNav");
+        setIsAuthenticated(true);
       } else
       {
-        // Token not found, navigate to login
-        // navigation.navigate("Login");
+        setIsAuthenticated(false);
       }
     } catch (error)
     {
@@ -101,28 +133,26 @@ function App()
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="LoggedInNav">
-        <Stack.Screen
-          name="LoggedInNav"
-          component={LoggedInNav}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ title: "Login Screen" }}
-        />
-        <Stack.Screen
-          name="Update Profile"
-          component={UpdateProfile}
-          options={{ title: "Update Profile" }}
-        />
-
-        <Stack.Screen
-          name="SignUp"
-          component={SignupScreen}
-          options={{ title: "Sign Up Screen" }}
-        />
+      <Stack.Navigator initialRouteName={isAuthenticated ? "PrivateRoutes" : "Login"}>
+        <>
+          <Stack.Screen
+            name="PrivateRoutes"
+            component={PrivateRoutes}
+            options={{ headerShown: false }}
+          />
+        </>
+        <>
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ title: "Login Screen" }}
+          />
+          <Stack.Screen
+            name="SignUp"
+            component={SignupScreen}
+            options={{ title: "Sign Up Screen" }}
+          />
+        </>
       </Stack.Navigator>
     </NavigationContainer>
   );

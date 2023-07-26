@@ -51,14 +51,14 @@ const LoginScreen = ({ navigation }) =>
           await AsyncStorage.setItem('whatsthat_session_token', responseJson.token);
           await AsyncStorage.setItem('user_id', responseJson.id);
 
-          navigation.navigate('LoggedInNav')
+          navigation.navigate('PrivateRoutes')
           Alert.alert(
             'Success',
             `Successfully logged in with email: ${values.email}`,
             [
               {
                 text: 'OK',
-                onPress: () => navigation.navigate('LoggedInNav')
+                onPress: () => navigation.navigate('PrivateRoutes')
               }
             ]
           );

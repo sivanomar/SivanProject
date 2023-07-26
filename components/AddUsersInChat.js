@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Alert, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AntDesign } from '@expo/vector-icons';
 
 const SearchScreen = (props) =>
 {
@@ -186,6 +187,12 @@ const SearchScreen = (props) =>
 
     return (
         <View style={styles.container}>
+            {
+                data && data.length === 0 &&
+                <View style={styles.emptyContainer}>
+                    <AntDesign name="frowno" size={48} color="gray" />
+                    <Text style={styles.emptyText}>No Contact Found</Text>
+                </View>}
             {isLoading ? (
                 <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
             ) : (
@@ -198,6 +205,7 @@ const SearchScreen = (props) =>
                     contentContainerStyle={styles.flatListContent}
                 />
             )}
+
         </View>
     );
 };
@@ -231,6 +239,11 @@ const styles = StyleSheet.create({
     },
     flatListContent: {
         paddingBottom: 20,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 
