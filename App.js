@@ -17,7 +17,7 @@ import ChatList from "./components/Chat";
 import SendMessage from "./components/SendMessage";
 import CreateChat from "./components/CreateChat";
 import AddUsersInChat from "./components/AddUsersInChat";
-
+import Draft from "./components/DraftScreen";
 const Stack = createStackNavigator();
 const BottomTab = createBottomTabNavigator();
 
@@ -29,6 +29,11 @@ function PrivateRoutes()
         name="LoggedInNav"
         component={LoggedInNav}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Draft"
+        component={Draft}
+        options={{ title: "Draft" }}
       />
       <Stack.Screen
         name="Update Profile"

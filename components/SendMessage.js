@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
 
-const Chat = ({ route }) =>
+const Chat = ({ route, navigation }) =>
 {
   const [conversation, setConversation] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [user_id, setuser_id] = useState(null);
-  const [message_id, setmessage_id] = useState(null)
+  const [message_id, setmessage_id] = useState(null);
+  const isFocused = useIsFocused();
 
   const chatId = route?.params?.chatId ?? null;
 
-  useEffect(async () =>
+  useEffect(() =>
   {
     fetchChatDetails();
-    const user_id = await AsyncStorage.getItem('user_id');
-    setuser_id(user_id)
-  }, []);
-
+  }, [isFocused]);
   const fetchChatDetails = async () =>
   {
     try
     {
+      const user_id = await AsyncStorage.getItem('user_id');
+      setuser_id(user_id);
       setIsLoading(true);
       const token = await AsyncStorage.getItem('whatsthat_session_token');
 
@@ -32,7 +33,6 @@ const Chat = ({ route }) =>
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-Authorization': token,
-
         },
       });
 
@@ -53,15 +53,17 @@ const Chat = ({ route }) =>
     }
   };
 
+
+
+
   const sendMessage = async () =>
   {
     try
     {
       if (message_id)
       {
-        updateMessage(message_id, messageText)
-        return
-
+        updateMessage(message_id, messageText);
+        return;
       }
       setIsLoading(true);
       const token = await AsyncStorage.getItem('whatsthat_session_token');
@@ -72,7 +74,6 @@ const Chat = ({ route }) =>
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-Authorization': token,
-
         },
         body: JSON.stringify({
           message: messageText,
@@ -81,17 +82,7 @@ const Chat = ({ route }) =>
 
       if (response.status === 200)
       {
-        const newMessage = {
-          message_id: conversation.length + 1, // Generate a unique ID for the new message
-          timestamp: Date.now(),
-          message: messageText,
-          author: {
-            user_id: 14, // Replace with the actual user_id of the sender
-            first_name: "Ashley",
-            last_name: "Williams",
-            email: "ashley.williams@mmu.ac.uk"
-          },
-        };
+
 
         fetchChatDetails();
 
@@ -128,7 +119,7 @@ const Chat = ({ route }) =>
 
       if (response.status === 200)
       {
-        setConversation(prevConversation => prevConversation.filter(message => message.message_id !== messageId));
+        setConversation((prevConversation) => prevConversation.filter((message) => message.message_id !== messageId));
         console.log('Message deleted successfully');
       } else
       {
@@ -156,7 +147,6 @@ const Chat = ({ route }) =>
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-Authorization': token,
-
         },
         body: JSON.stringify({
           message: newMessage,
@@ -165,9 +155,11 @@ const Chat = ({ route }) =>
 
       if (response.status === 200)
       {
-        setConversation(prevConversation => prevConversation.map(message =>
-          message.message_id === messageId ? { ...message, message: newMessage } : message
-        ));
+        setConversation((prevConversation) =>
+          prevConversation.map((message) =>
+            message.message_id === messageId ? { ...message, message: newMessage } : message
+          )
+        );
         console.log('Message updated successfully');
       } else
       {
@@ -180,19 +172,21 @@ const Chat = ({ route }) =>
     {
       setIsLoading(false);
     }
-    setmessage_id(null)
-    setMessageText("")
+    setmessage_id(null);
+    setMessageText('');
   };
 
   const renderMessage = ({ item }) =>
   {
     const isOwnMessage = item.author.user_id == user_id; // Replace with the actual user_id of the logged-in user
-    console.log("isOwnMessage", isOwnMessage)
-    console.log("isOwnMessage 2", user_id)
+    console.log('isOwnMessage', isOwnMessage);
+    console.log('isOwnMessage 2', user_id);
 
     return (
       <View style={[styles.message, isOwnMessage ? styles.from_me : styles.from_other]}>
-        <Text style={styles.author}>{item.author.first_name} {item.author.last_name}</Text>
+        <Text style={styles.author}>
+          {item.author.first_name} {item.author.last_name}
+        </Text>
         <Text style={styles.content}>{item.message}</Text>
         {isOwnMessage && (
           <TouchableOpacity style={styles.deleteButton} onPress={() => deleteMessage(item.message_id)}>
@@ -204,8 +198,8 @@ const Chat = ({ route }) =>
             style={styles.updateButton}
             onPress={() =>
             {
-              setmessage_id(item.message_id)
-              setMessageText(item.message)
+              setmessage_id(item.message_id);
+              setMessageText(item.message);
             }}
           >
             <Text style={styles.buttonText}>Update</Text>
@@ -215,46 +209,60 @@ const Chat = ({ route }) =>
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.wrapper}>
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
-        ) : (
-          <FlatList
-            data={conversation}
-            renderItem={renderMessage}
-            keyExtractor={item => item.message_id.toString()}
+
+
+  const renderScreen = () =>
+  {
+    return (
+      <View style={styles.container}>
+        <View style={styles.wrapper}>
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
+          ) : (
+            <FlatList
+              data={conversation}
+              renderItem={renderMessage}
+              keyExtractor={item => item.message_id.toString()}
+            />
+          )}
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type a message"
+            onChangeText={text => setMessageText(text)}
+            value={messageText}
+            editable={!isLoading}
           />
-        )}
+
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={sendMessage}
+              disabled={!messageText || isLoading}
+            >
+              <Text style={styles.sendButtonText}>Send</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sendButton}
+              onPress={() => { navigation.navigate('Draft', { chatId }) }}
+            >
+              <Text style={styles.draftButtonText}>Draft</Text>
+            </TouchableOpacity>
+          </View>
+
+        </View>
       </View>
-      <View style={styles.inputWrapper}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message"
-          onChangeText={text => setMessageText(text)}
-          value={messageText}
-          editable={!isLoading}
-        />
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={sendMessage}
-          disabled={!messageText || isLoading}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  }
+
+  return renderScreen();
 };
-
-
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "lightblue",
+    backgroundColor: 'lightblue',
   },
   wrapper: {
     flex: 1,
@@ -310,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   sendButton: {
-    width: '100%',
+    width: '50%',
     borderRadius: 25,
     height: 50,
     alignItems: 'center',
@@ -329,7 +337,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  draftButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: 'lightgray',
+    borderRadius: 25,
+    padding: 10,
+  },
+  draftButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  draftInputWrapper: {
+    backgroundColor: '#ffffff',
+    padding: 10,
+  },
+  saveButton: {
+    width: '100%',
+    borderRadius: 25,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2196F3',
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  draftList: {
+    flex: 1,
+    padding: 10,
+  },
+  draftItem: {
+    borderRadius: 5,
+    backgroundColor: '#e6e6e6',
+    padding: 10,
+    marginBottom: 10,
+  },
+  draftText: {
+    color: 'black',
+  },
+  noDraftsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'gray',
+    alignSelf: 'center',
+  },
 });
-
 
 export default Chat;
