@@ -183,7 +183,7 @@ const Chat = ({ route, navigation }) =>
     console.log('isOwnMessage 2', user_id);
 
     return (
-      <View style={[styles.message, isOwnMessage ? styles.from_me : styles.from_other]}>
+      <View style={[styles.message, styles.from_other]}>
         <Text style={styles.author}>
           {item.author.first_name} {item.author.last_name}
         </Text>
