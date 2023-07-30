@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AntDesign } from '@expo/vector-icons';
+import Alert from "../Components/Alert";
 
 const SearchScreen = (props) =>
 {
@@ -9,15 +10,25 @@ const SearchScreen = (props) =>
     const [data, setData] = useState([]);
     const [offset, setOffset] = useState(0);
     const [members, setMembers] = useState([]);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [showAlert, setShowAlert] = useState(false);
     let chatId = props?.route?.params?.chatId ?? null;
-    console.log(chatId)
     useEffect(() =>
     {
-        fetchData(true);
+        fetchData();
         fetchMembers();
     }, []);
+    const handleShowAlert = (message) =>
+    {
+        setAlertMessage(message);
+        setShowAlert(true);
+    };
 
-    const fetchData = async (isFilter) =>
+    const handleCloseAlert = () =>
+    {
+        setShowAlert(false);
+    };
+    const fetchData = async () =>
     {
         try
         {
@@ -25,7 +36,7 @@ const SearchScreen = (props) =>
 
             const token = await AsyncStorage.getItem('whatsthat_session_token');
 
-            const response = await fetch(`http://localhost:3333/api/1.0.0/search?limit=20&offset=${offset}`, {
+            const response = await fetch(`http://localhost:3333/api/1.0.0/contacts`, {
                 method: 'GET',
                 headers: {
                     Accept: 'application/json',
@@ -45,11 +56,8 @@ const SearchScreen = (props) =>
             }
         } catch (error)
         {
-            Alert.alert('Error', error.message, [
-                {
-                    text: 'OK',
-                },
-            ]);
+            handleShowAlert(error.message);
+
         } finally
         {
             setIsLoading(false);
@@ -69,12 +77,10 @@ const SearchScreen = (props) =>
                     'X-Authorization': token,
                 },
             });
-            console.log("members", response)
 
             if (response.status === 200)
             {
                 const { members } = await response.json();
-                console.log("members", members)
                 setMembers([...members]);
             } else
             {
@@ -86,11 +92,7 @@ const SearchScreen = (props) =>
         }
     };
 
-    const handleLoadMore = () =>
-    {
-        console.log('Loading more');
-        // setOffset(prevOffset => prevOffset + 1);
-    };
+
 
     const handleAddUser = async (userId) =>
     {
@@ -109,9 +111,10 @@ const SearchScreen = (props) =>
 
             if (response.status === 200)
             {
-                fetchData(true);
+                fetchData();
                 fetchMembers();
-                console.log('User added successfully');
+                handleShowAlert("User is added successfully");
+
             } else
             {
                 throw new Error('Something went wrong');
@@ -142,9 +145,10 @@ const SearchScreen = (props) =>
 
             if (response.status === 200)
             {
-                fetchData(true);
+                fetchData();
                 fetchMembers();
-                console.log('User removed successfully');
+                handleShowAlert("User is removed successfully");
+
             } else
             {
                 throw new Error('Something went wrong');
@@ -161,24 +165,23 @@ const SearchScreen = (props) =>
     const renderItem = ({ item }) =>
     {
         const isMember = members.find(member => member.user_id === item.user_id);
-        console.log("isMember", isMember);
         return (
             <View style={styles.card}>
-                <Text>{item.given_name} {item.family_name}</Text>
+                <Text>{item.first_name} {item.last_name}</Text>
                 <Text>{item.email}</Text>
                 {Boolean(isMember) ? (
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={() => handleRemoveUser(item.user_id)}
                     >
-                        <Text style={styles.buttonText}>-</Text>
+                        <Text style={styles.buttonText}>Remove - </Text>
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={() => handleAddUser(item.user_id)}
                     >
-                        <Text style={styles.buttonText}>+</Text>
+                        <Text style={styles.buttonText}>Add +</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -187,6 +190,11 @@ const SearchScreen = (props) =>
 
     return (
         <View style={styles.container}>
+            <Alert
+                visible={showAlert}
+                message={alertMessage}
+                onClose={handleCloseAlert}
+            />
             {
                 data && data.length === 0 &&
                 <View style={styles.emptyContainer}>
@@ -200,7 +208,6 @@ const SearchScreen = (props) =>
                     data={data}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.user_id.toString()}
-                    onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.5}
                     contentContainerStyle={styles.flatListContent}
                 />

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
-
+import { Dimensions } from 'react-native';
+const windowHeight = Dimensions.get('window').height;
 const Chat = ({ route, navigation }) =>
 {
   const [conversation, setConversation] = useState([]);
@@ -87,7 +88,6 @@ const Chat = ({ route, navigation }) =>
         fetchChatDetails();
 
         setMessageText('');
-        console.log('Message sent successfully');
       } else
       {
         throw new Error('Something went wrong');
@@ -120,7 +120,6 @@ const Chat = ({ route, navigation }) =>
       if (response.status === 200)
       {
         setConversation((prevConversation) => prevConversation.filter((message) => message.message_id !== messageId));
-        console.log('Message deleted successfully');
       } else
       {
         throw new Error('Something went wrong');
@@ -160,7 +159,6 @@ const Chat = ({ route, navigation }) =>
             message.message_id === messageId ? { ...message, message: newMessage } : message
           )
         );
-        console.log('Message updated successfully');
       } else
       {
         throw new Error('Something went wrong');
@@ -179,11 +177,8 @@ const Chat = ({ route, navigation }) =>
   const renderMessage = ({ item }) =>
   {
     const isOwnMessage = item.author.user_id == user_id; // Replace with the actual user_id of the logged-in user
-    console.log('isOwnMessage', isOwnMessage);
-    console.log('isOwnMessage 2', user_id);
-
     return (
-      <View style={[styles.message, styles.from_other]}>
+      <View style={[styles.message, isOwnMessage ? styles.from_me : styles.from_other]}>
         <Text style={styles.author}>
           {item.author.first_name} {item.author.last_name}
         </Text>
@@ -225,33 +220,33 @@ const Chat = ({ route, navigation }) =>
               keyExtractor={item => item.message_id.toString()}
             />
           )}
-        </View>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type a message"
-            onChangeText={text => setMessageText(text)}
-            value={messageText}
-            editable={!isLoading}
-          />
-
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-
-            <TouchableOpacity
-              style={styles.sendButton}
-              onPress={sendMessage}
-              disabled={!messageText || isLoading}
-            >
-              <Text style={styles.sendButtonText}>Send</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.sendButton}
-              onPress={() => { navigation.navigate('Draft', { chatId }) }}
-            >
-              <Text style={styles.draftButtonText}>Draft</Text>
-            </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type a message"
+              onChangeText={text => setMessageText(text)}
+              value={messageText}
+              editable={!isLoading}
+            />
           </View>
-
         </View>
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={sendMessage}
+            disabled={!messageText || isLoading}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sendButton}
+            onPress={() => { navigation.navigate('Draft', { chatId }) }}
+          >
+            <Text style={styles.draftButtonText}>Draft</Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
     );
   }
@@ -263,9 +258,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'lightblue',
+    height: '100vh',
   },
   wrapper: {
-    flex: 1,
+    height: windowHeight - 130
   },
   message: {
     borderRadius: 15,
@@ -282,7 +278,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   from_me: {
-    alignSelf: 'flex-end',
     backgroundColor: 'skyblue',
   },
   from_other: {

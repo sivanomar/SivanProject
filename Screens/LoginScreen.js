@@ -1,11 +1,28 @@
-import React from 'react';
-import { View, TextInput, StyleSheet, Text, TouchableOpacity, Alert,Button } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, Button } from 'react-native';
 import { useFormik } from 'formik';
 import * as EmailValidator from 'email-validator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
+import CustomAlert from '../Components/Alert';
 
 const LoginScreen = ({ navigation }) =>
 {
+  const isFocused = useIsFocused();
+
+  const [alertMessage, setAlertMessage] = useState('');
+  const [showAlert, setShowAlert] = useState(false);
+  const handleShowAlert = (message) =>
+  {
+    setAlertMessage(message);
+    setShowAlert(true);
+  };
+
+  const handleCloseAlert = () =>
+  {
+    setShowAlert(false);
+  };
+
   const formik = useFormik({
     initialValues: {
       email: '',
@@ -32,7 +49,8 @@ const LoginScreen = ({ navigation }) =>
     },
     onSubmit: async values =>
     {
-      try {
+      try
+      {
         const response = await fetch('http://localhost:3333/api/1.0.0/login', {
           method: 'POST',
           headers: {
@@ -52,15 +70,8 @@ const LoginScreen = ({ navigation }) =>
           await AsyncStorage.setItem('user_id', responseJson.id);
 
           navigation.navigate('PrivateRoutes')
-          Alert.alert(
-            'Success',
-            `Successfully logged in with email: ${values.email}`,
-            [
-              {
-                text: 'OK',
-                onPress: () => navigation.navigate('PrivateRoutes')
-              }
-            ]
+          handleShowAlert(
+            `Successfully logged in`,
           );
         } else if (response.status === 400)
         {
@@ -69,22 +80,46 @@ const LoginScreen = ({ navigation }) =>
         {
           throw new Error('Something went wrong');
         }
-      } catch (error) {
-        Alert.alert(
-          'Error',
+      } catch (error)
+      {
+        handleShowAlert(
+
           error.message,
-          [
-            {
-              text: 'OK'
-            }
-          ]
+
         );
       }
     }
   });
 
+  useEffect(() =>
+  {
+    checkToken();
+  }, [isFocused])
+  const checkToken = async () =>
+  {
+    try
+    {
+      const token = await AsyncStorage.getItem("whatsthat_session_token");
+
+      if (token)
+      {
+        navigation.navigate("PrivateRoutes")
+
+      } else
+      {
+      }
+    } catch (error)
+    {
+      console.log(error);
+    }
+  };
   return (
     <View style={styles.container}>
+      <CustomAlert
+        visible={showAlert}
+        message={alertMessage}
+        onClose={handleCloseAlert}
+      />
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
@@ -104,7 +139,7 @@ const LoginScreen = ({ navigation }) =>
         {formik.touched.password && formik.errors.password && <Text style={styles.errorText}>{formik.errors.password}</Text>}
 
         <TouchableOpacity onPress={formik.handleSubmit}>
-          <View style={{...styles.button,width:300}}>
+          <View style={{ ...styles.button, width: 300 }}>
             <Text style={styles.buttonText}>Login</Text>
           </View>
         </TouchableOpacity>

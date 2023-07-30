@@ -1,18 +1,36 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, TextInput, Button, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomAlert from '../Components/Alert';
 
-const CreateChatScreen = ({ navigation }) => {
+const CreateChatScreen = ({ navigation }) =>
+{
   const [chatName, setChatName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [showAlert, setShowAlert] = useState(false);
 
-  const handleAddChat = async () => {
-    if (chatName.trim() === '') {
-      Alert.alert('Error', 'Chat name cannot be empty');
+  const handleShowAlert = (message) =>
+  {
+    setAlertMessage(message);
+    setShowAlert(true);
+  };
+
+  const handleCloseAlert = () =>
+  {
+    setShowAlert(false);
+  };
+
+  const handleAddChat = async () =>
+  {
+    if (chatName.trim() === '')
+    {
+      handleShowAlert('Chat name cannot be empty');
       return;
     }
 
-    try {
+    try
+    {
       setIsLoading(true);
       const token = await AsyncStorage.getItem('whatsthat_session_token');
 
@@ -28,22 +46,31 @@ const CreateChatScreen = ({ navigation }) => {
         }),
       });
 
-      if (response.ok) {
-        Alert.alert('Success', 'Chat added successfully');
+      if (response.ok)
+      {
+        handleShowAlert('Chat added successfully');
         navigation.navigate('Chats');
-      } else {
+      } else
+      {
         throw new Error('Failed to add chat');
       }
-    } catch (error) {
+    } catch (error)
+    {
       console.error('Error', error.message);
-      Alert.alert('Error', 'Failed to add chat');
-    } finally {
+      handleShowAlert('Failed to add chat');
+    } finally
+    {
       setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <CustomAlert
+        visible={showAlert}
+        message={alertMessage}
+        onClose={handleCloseAlert}
+      />
       <ActivityIndicator animating={isLoading} size="large" color="#2196F3" style={styles.activityIndicator} />
       <TextInput
         style={styles.input}

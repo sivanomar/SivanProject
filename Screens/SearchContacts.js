@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert,TextInput, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { Dimensions } from 'react-native';
+import CustomAlert from '../Components/Alert';
+const windowHeight = Dimensions.get('window').height;
 const SearchScreen = () =>
 {
     const [isLoading, setIsLoading] = useState(false);
@@ -9,13 +11,24 @@ const SearchScreen = () =>
     const [filter, setFilter] = useState('all');
     const [data, setData] = useState([]);
     const [offset, setOffset] = useState(0);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [showAlert, setShowAlert] = useState(false);
+    const handleShowAlert = (message) =>
+    {
+        setAlertMessage(message);
+        setShowAlert(true);
+    };
 
+    const handleCloseAlert = () =>
+    {
+        setShowAlert(false);
+    };
 
     useEffect(() =>
     {
-        fetchData(true, searchText, filter);
+        fetchData(searchText, filter);
     }, []);
-    const fetchData = async (isFilter, searchText, filter) =>
+    const fetchData = async (searchText, filter) =>
     {
         try
         {
@@ -35,10 +48,7 @@ const SearchScreen = () =>
             if (response.status === 200)
             {
                 const searchData = await response.json();
-                if (isFilter)
-                    setData(prevData => [...prevData, ...searchData]);
-                else
-                    setData(() => [...searchData]);
+                setData(() => [...searchData]);
 
             } else
             {
@@ -46,23 +56,27 @@ const SearchScreen = () =>
             }
         } catch (error)
         {
-            Alert.alert('Error', error.message, [
-                {
-                    text: 'OK',
-                },
-            ]);
+            handleShowAlert(error.message);
         } finally
         {
             setIsLoading(false);
         }
     };
-
+    useEffect(() =>
+    {
+        fetchData(searchText, filter);
+    }, [offset]);
     const handleLoadMore = () =>
     {
-        console.log('Loading more');
-        // setOffset(prevOffset => prevOffset + 1);
+        setOffset(prevOffset => prevOffset + 1);
     };
-
+    const handleLoadPrevious = () =>
+    {
+        if (offset >= 1)
+        {
+            setOffset(prevOffset => prevOffset - 1);
+        }
+    };
     const renderItem = ({ item }) => (
         <View style={styles.card}>
             <Text>{item.given_name} {item.family_name}</Text>
@@ -95,18 +109,14 @@ const SearchScreen = () =>
 
             if (response.status === 200)
             {
-                Alert.alert('Success', 'User added successfully');
+                handleShowAlert('User added successfully');
             } else
             {
                 throw new Error('Something went wrong');
             }
         } catch (error)
         {
-            Alert.alert('Error', error.message, [
-                {
-                    text: 'OK',
-                },
-            ]);
+            handleShowAlert(error.message);
         } finally
         {
             setIsLoading(false);
@@ -115,46 +125,69 @@ const SearchScreen = () =>
 
     return (
         <View style={styles.container}>
-            <TextInput
-                style={styles.searchInput}
-                placeholder="Search"
-                onChangeText={text =>
-                {
-                    setSearchText(text)
-                    fetchData(false, text, filter);
-                }}
-                value={searchText}
+            <CustomAlert
+                visible={showAlert}
+                message={alertMessage}
+                onClose={handleCloseAlert}
             />
-            <View style={styles.filterContainer}>
-                <TouchableOpacity style={styles.filterOption} onPress={() =>
-                {
-                    setFilter('all')
-                    fetchData(false, searchText, 'all');
+            <View style={{
+                height: windowHeight - 200
 
-                }}>
-                    <Text style={filter === 'all' ? styles.selectedOption : styles.option}>All</Text>
+            }}>
+
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search"
+                    onChangeText={text =>
+                    {
+                        setSearchText(text)
+                        fetchData(text, filter);
+                    }}
+                    value={searchText}
+                />
+                <View style={styles.filterContainer}>
+                    <TouchableOpacity style={styles.filterOption} onPress={() =>
+                    {
+                        setFilter('all')
+                        fetchData(searchText, 'all');
+
+                    }}>
+                        <Text style={filter === 'all' ? styles.selectedOption : styles.option}>All</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.filterOption} onPress={() =>
+                    {
+                        setFilter('contacts')
+                        fetchData(searchText, 'contacts');
+
+                    }}>
+                        <Text style={filter === 'contacts' ? styles.selectedOption : styles.option}>Contacts</Text>
+                    </TouchableOpacity>
+                </View>
+                {isLoading ? (
+                    <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
+                ) : (
+                    <FlatList
+                        data={data}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item.user_id.toString()}
+                        contentContainerStyle={styles.flatListContent}
+
+                    />
+                )}
+            </View>
+
+            <View style={styles.paginationButtons}>
+                <TouchableOpacity
+                    style={[styles.paginationButton, { opacity: offset >= 1 ? 1 : 0.5 }]}
+                    onPress={handleLoadPrevious}
+                    disabled={offset === 0}
+                >
+                    <Text style={styles.paginationButtonText}>Previous Page</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.filterOption} onPress={() =>
-                {
-                    setFilter('contacts')
-                    fetchData(false, searchText, 'contacts');
-
-                }}>
-                    <Text style={filter === 'contacts' ? styles.selectedOption : styles.option}>Contacts</Text>
+                <TouchableOpacity style={styles.paginationButton} onPress={handleLoadMore}>
+                    <Text style={styles.paginationButtonText}>Next Page</Text>
                 </TouchableOpacity>
             </View>
-            {isLoading ? (
-                <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
-            ) : (
-                <FlatList
-                    data={data}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.user_id.toString()}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.5}
-                    contentContainerStyle={styles.flatListContent}
-                />
-            )}
         </View>
     );
 };
@@ -218,6 +251,21 @@ const styles = StyleSheet.create({
     },
     activityIndicator: {
         marginVertical: 20,
+    },
+    paginationButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+    },
+    paginationButton: {
+        backgroundColor: '#2196F3',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 5,
+    },
+    paginationButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
     },
 });
 

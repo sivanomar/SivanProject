@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useFormik } from 'formik';
 import * as EmailValidator from 'email-validator';
+import CustomAlert from '../Components/Alert';
 
 const SignUpScreen = () =>
 {
     const [successMessage, setSuccessMessage] = useState("");
+    const [alertMessage, setAlertMessage] = useState('');
+    const [showAlert, setShowAlert] = useState(false);
+    const handleShowAlert = (message) =>
+    {
+        setAlertMessage(message);
+        setShowAlert(true);
+    };
 
+    const handleCloseAlert = () =>
+    {
+        setShowAlert(false);
+    };
     const formik = useFormik({
         initialValues: {
             firstName: "",
@@ -79,33 +91,18 @@ const SignUpScreen = () =>
                 .then((response, error) =>
                 {
                     console.log(error)
-                    console.log(response)
-
 
                     if (response.ok)
                     {
                         navigation.navigate("Login");
-                        Alert.alert(
-                            "Success",
+                        handleShowAlert(
                             `Successfully signed up with name: ${values.firstName} ${values.lastName}, email: ${values.email}`,
-                            [
-                                {
-                                    text: "OK",
-                                    onPress: () => navigation.navigate("Login")
-                                }
-                            ]
                         );
                         // Handle navigation here
                     } else
                     {
-                        Alert.alert(
-                            "Failed to login",
-                            [
-                                {
-                                    text: "OK",
-                                    onPress: () => navigation.navigate("Login")
-                                }
-                            ]
+                        handleShowAlert(
+                            "Failed to login"
                         );
                         throw new Error("Failed to send data to API");
                     }
@@ -119,6 +116,11 @@ const SignUpScreen = () =>
 
     return (
         <View style={styles.container}>
+            <CustomAlert
+                visible={showAlert}
+                message={alertMessage}
+                onClose={handleCloseAlert}
+            />
             <TextInput
                 style={styles.input}
                 placeholder="First Name"

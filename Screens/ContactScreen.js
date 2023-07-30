@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
+import CustomAlert from '../Components/Alert';
 
 const SearchScreen = ({ navigation }) =>
 {
@@ -10,9 +11,19 @@ const SearchScreen = ({ navigation }) =>
   const [searchText,] = useState('');
   const [filter,] = useState('all');
   const [data, setData] = useState([]);
-  const [offset, setOffset] = useState(0);
   const isFocused = useIsFocused();
+  const [alertMessage, setAlertMessage] = useState('');
+  const [showAlert, setShowAlert] = useState(false);
+  const handleShowAlert = (message) =>
+  {
+    setAlertMessage(message);
+    setShowAlert(true);
+  };
 
+  const handleCloseAlert = () =>
+  {
+    setShowAlert(false);
+  };
   useEffect(() =>
   {
     fetchData(true, searchText, filter);
@@ -45,22 +56,16 @@ const SearchScreen = ({ navigation }) =>
       }
     } catch (error)
     {
-      Alert.alert('Error', error.message, [
-        {
-          text: 'OK',
-        },
-      ]);
+      handleShowAlert(error.message);
+
+
     } finally
     {
       setIsLoading(false);
     }
   };
 
-  const handleLoadMore = () =>
-  {
-    console.log('Loading more');
-    // setOffset(prevOffset => prevOffset + 1);
-  };
+
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
@@ -104,18 +109,14 @@ const SearchScreen = ({ navigation }) =>
       {
         fetchData(true, searchText, filter);
 
-        Alert.alert('Success', 'User blocked successfully');
+        handleShowAlert('User blocked successfully');
       } else
       {
         throw new Error('Something went wrong');
       }
     } catch (error)
     {
-      Alert.alert('Error', error.message, [
-        {
-          text: 'OK',
-        },
-      ]);
+      handleShowAlert(error.message);
     } finally
     {
       setIsLoading(false);
@@ -143,7 +144,7 @@ const SearchScreen = ({ navigation }) =>
       {
         fetchData(true, searchText, filter);
 
-        Alert.alert('Success', 'User deleted successfully');
+        handleShowAlert('User deleted successfully');
         // Remove the deleted user from the data array
         setData(prevData => prevData.filter(item => item.user_id !== userId));
       } else
@@ -152,11 +153,7 @@ const SearchScreen = ({ navigation }) =>
       }
     } catch (error)
     {
-      Alert.alert('Error', error.message, [
-        {
-          text: 'OK',
-        },
-      ]);
+      handleShowAlert(error.message);
     } finally
     {
       setIsLoading(false);
@@ -171,6 +168,11 @@ const SearchScreen = ({ navigation }) =>
       >
         <Text style={styles.buttonText}>Show Blocked User</Text>
       </TouchableOpacity>
+      <CustomAlert
+        visible={showAlert}
+        message={alertMessage}
+        onClose={handleCloseAlert}
+      />
       {
         data && data.length === 0 &&
         <View style={styles.emptyContainer}>
@@ -184,7 +186,6 @@ const SearchScreen = ({ navigation }) =>
           data={data}
           renderItem={renderItem}
           keyExtractor={(item) => item.user_id.toString()}
-          onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           contentContainerStyle={styles.flatListContent}
         />

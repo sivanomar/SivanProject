@@ -52,7 +52,6 @@ const BlockedUsers = () => {
 
       if (response.status === 200) {
         fetchBlockedUsers();
-        console.log('User unblocked successfully');
       } else {
         throw new Error('Something went wrong');
       }

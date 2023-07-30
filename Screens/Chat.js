@@ -132,7 +132,7 @@ const ChatList = ({ navigation }) =>
       <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('Create Chat')}>
         <Text style={styles.buttonText}>Create Chat</Text>
       </TouchableOpacity>
-      {isLoading ? (
+      {false ? (
         <ActivityIndicator size="large" color="#2196F3" style={styles.activityIndicator} />
       ) : chats.length > 0 ? (
         <FlatList

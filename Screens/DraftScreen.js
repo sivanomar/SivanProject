@@ -37,7 +37,6 @@ const DraftScreen = ({ route }) =>
 
             if (response.status === 200)
             {
-                console.log('Message sent successfully');
             } else
             {
                 throw new Error('Something went wrong');
@@ -75,7 +74,6 @@ const DraftScreen = ({ route }) =>
             const updatedDrafts = [...drafts, newDraft];
             await AsyncStorage.setItem('drafts', JSON.stringify(updatedDrafts));
             setDrafts([...updatedDrafts]);
-            console.log('Draft saved successfully');
             setMessageText("")
         } catch (error)
         {
@@ -98,7 +96,6 @@ const DraftScreen = ({ route }) =>
             setDrafts(updatedDrafts);
             setIsUpdate(null);
             setMessageText('');
-            console.log('Draft updated successfully');
         } catch (error)
         {
             console.error('Error', error.message);
@@ -111,7 +108,6 @@ const DraftScreen = ({ route }) =>
             const updatedDrafts = drafts.filter((draft) => draft.chatId !== draftChatId);
             await AsyncStorage.setItem('drafts', JSON.stringify(updatedDrafts));
             setDrafts(updatedDrafts);
-            console.log('Draft deleted successfully');
         } catch (error)
         {
             console.error('Error', error.message);

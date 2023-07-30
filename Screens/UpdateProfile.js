@@ -1,115 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Image, Modal } from 'react-native';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
-import Constants from 'expo-constants';
+import CustomAlert from '../Components/Alert';
+import { Camera, CameraType } from 'expo-camera';
 import axios from 'axios';
-const UpdateProfileScreen = ({ navigation }) =>
+
+const UpdateProfileScreen = () =>
 {
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState(null);
-
+  const [alertMessage, setAlertMessage] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
-  useEffect(() =>
+  const [isCameraModalVisible, setIsCameraModalVisible] = useState(false);
+  const [camera, setCamera] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [permission, requestPermission] = Camera.useCameraPermissions();
+  const handleShowAlert = (message) =>
   {
-    const fetchUserData = async () =>
+    setAlertMessage(message);
+    setShowAlert(true);
+  };
+
+  const handleCloseAlert = () =>
+  {
+    setShowAlert(false);
+  };
+  const fetchUserData = async () =>
+  {
+    try
     {
-      try
-      {
-        setIsLoading(true);
+      setIsLoading(true);
 
-        const token = await AsyncStorage.getItem('whatsthat_session_token');
-        const user_id = await AsyncStorage.getItem('user_id');
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+      const user_id = await AsyncStorage.getItem('user_id');
 
-        const [userResponse, photoResponse] = await Promise.all([
-          axios.get(`http://localhost:3333/api/1.0.0/user/${user_id}`, {
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'X-Authorization': token,
-            },
-          }),
-          axios.get(`http://localhost:3333/api/1.0.0/user/${user_id}/photo`, {
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'X-Authorization': token,
-            },
-            responseType: 'blob',
-          }),
-        ]);
-
-        if (userResponse.status === 200)
-        {
-          const userData = userResponse.data;
-          setUserData({ ...userData });
-        } else
-        {
-          throw new Error('Something went wrong');
-        }
-
-        if (photoResponse.status === 200)
-        {
-          console.log("photoResponse", photoResponse);
-
-          const blob = await photoResponse.data
-          console.log("photoResponse", blob);
-
-          setProfilePicture(URL.createObjectURL(blob));
-        } else
-        {
-          // Handle case when the user doesn't have a profile picture
-        }
-      } catch (error)
-      {
-        Alert.alert('Error', error.message, [
-          {
-            text: 'OK',
+      const userResponse = await
+        axios.get(`http://localhost:3333/api/1.0.0/user/${user_id}`, {
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Authorization': token,
           },
-        ]);
-      } finally
+        });
+      if (userResponse.status === 200)
       {
-        setIsLoading(false);
-      }
-    };
-
-
-    fetchUserData();
-  }, []);
-
-  useEffect(() =>
-  {
-    (async () =>
-    {
-      if (Constants.platform.ios)
+        const userData = userResponse.data;
+        setUserData({ ...userData });
+      } else
       {
-        const { status } = await ImagePicker.requestCameraRollPermissionsAsync();
-        if (status !== 'granted')
-        {
-          Alert.alert('Permission denied', 'Sorry, we need camera roll permissions to upload a profile picture.');
-        }
+        throw new Error('Something went wrong');
       }
-    })();
-  }, []);
 
-  const selectProfilePicture = async () =>
-  {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    console.log(result)
-    if (!result.cancelled)
+    } catch (error)
     {
-      setProfilePicture(result.uri);
-      onSubmit(result.uri)
+      handleShowAlert(error.message);
+    } finally
+    {
+      setIsLoading(false);
     }
   };
+  useEffect(() =>
+  {
+    fetchProfilePicture()
+    fetchUserData();
+  }, []);
+  const takeProfilePicture = async () =>
+  {
+    setIsCameraModalVisible(true);
+  };
+
+  const handleTakePicture = async () =>
+  {
+    if (camera && permission && permission.granted) 
+    {
+      const options = { quality: 0.5, base64: true }
+      let { uri } = await camera.takePictureAsync(options);
+      uploadProfilePicture(uri);
+    }
+    else
+    {
+      handleShowAlert("Camera permission denied")
+    }
+  };
+  const uploadProfilePicture = async (uri) =>
+  {
+    try
+    {
+      const token = await AsyncStorage.getItem('whatsthat_session_token');
+      const user_id = await AsyncStorage.getItem('user_id');
+
+      const res = await fetch(uri);
+      const blob = await res.blob();
+
+      await fetch(`http://localhost:3333/api/1.0.0/user/${user_id}/photo`, {
+        method: 'POST',
+        headers: {
+          'X-authorization': token,
+          'Content-Type': 'image/png',
+        },
+        body: blob,
+      })
+      setIsCameraModalVisible(false);
+      fetchProfilePicture()
+
+
+    } catch (error)
+    {
+      console.error(error);
+      // Handle upload error
+    }
+  };
+
 
   const formik = useFormik({
     initialValues: {
@@ -150,12 +153,7 @@ const UpdateProfileScreen = ({ navigation }) =>
 
         if (response.status === 200)
         {
-          Alert.alert('Success', 'Profile updated successfully', [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]);
+          handleShowAlert('Profile updated successfully');
         } else if (response.status === 400)
         {
           throw new Error('Invalid data');
@@ -165,11 +163,7 @@ const UpdateProfileScreen = ({ navigation }) =>
         }
       } catch (error)
       {
-        Alert.alert('Error', error.message, [
-          {
-            text: 'OK',
-          },
-        ]);
+        handleShowAlert(error.message);
       } finally
       {
         setIsLoading(false);
@@ -189,58 +183,74 @@ const UpdateProfileScreen = ({ navigation }) =>
     }
   }, [userData]);
 
-  const onSubmit = async (values) =>
+
+  const fetchProfilePicture = async () =>
   {
     try
     {
-      setIsLoading(true);
 
       const token = await AsyncStorage.getItem('whatsthat_session_token');
       const user_id = await AsyncStorage.getItem('user_id');
 
-      const formData = new FormData();
-      if (values)
-      {
-        console.log("values", values.replace("data:", "").split(";")[0])
-        console.log("values", {
-          uri: values,
-          name: "photo",
-          type: values.replace("data:", "").split(";")[0],
-        })
-
-
-        formData.append('photo', {
-          uri: values,
-          name: "photo",
-          type: values.replace("data:", "").split(";")[0],
-        });
-      }
-
-      const response = await fetch(`http://localhost:3333/api/1.0.0/user/${user_id}/photo`, {
-        method: 'POST',
+      await fetch(`http://localhost:3333/api/1.0.0/user/${user_id}/photo`, {
+        method: 'get',
         headers: {
-          'X-Authorization': token,
-          "Content-Type": values.replace("data:", "").split(";")[0]
+          'X-authorization': token,
         },
-        body: formData,
-      });
+      })
+        .then((response) =>
+        {
+          if (response.status === 200)
+          {
+            return response.blob();
+          }
+        })
+        .then((rblob) =>
+        {
+          const data = URL.createObjectURL(rblob);
+          setProfilePicture(data);
+        })
+        .catch((err) => (err));
+    } catch (error)
+    {
+      // Handle fetch error
+    }
+  };
+  console.log("permission", permission?.status == "granted")
+  console.log("permission", CameraType?.back)
 
-      // Rest of the code remains the same
-    } catch (e) { }
-  }
   return (
     <View style={styles.container}>
 
-      <View style={styles.profilePictureContainer}>
+
+      {/* Modal for Camera */}
+      {/* <Modal visible={isCameraModalVisible}> */}
+      {isCameraModalVisible && <View style={styles.cameraContainer}>
+        {
+          permission && permission?.status == "granted" &&
+          CameraType?.back && <Camera ref={(ref) => setCamera(ref)} style={styles.camera} type={CameraType.back} />}
+        <TouchableOpacity style={styles.cameraButton} onPress={handleTakePicture}>
+          <Text style={styles.cameraButtonText}>Take Picture</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cameraButton} onPress={() => setIsCameraModalVisible(false)}>
+          <Text style={styles.cameraButtonText}>Close</Text>
+        </TouchableOpacity>
+      </View>}
+      {/* </Modal> */}
+
+      <CustomAlert
+        visible={showAlert}
+        message={alertMessage}
+        onClose={handleCloseAlert}
+      />
+      <TouchableOpacity style={styles.profilePictureContainer} onPress={takeProfilePicture}>
         {profilePicture ? (
           <Image style={styles.profilePicture} source={{ uri: profilePicture }} />
         ) : (
           <Text style={styles.profilePicturePlaceholder}>No profile picture</Text>
         )}
-        <TouchableOpacity onPress={selectProfilePicture}>
-          <Text style={styles.changePictureText}>Change Picture</Text>
-        </TouchableOpacity>
-      </View>
+        <Text style={styles.changePictureText}>Change Picture</Text>
+      </TouchableOpacity>
 
 
       <View style={styles.formContainer}>
@@ -361,6 +371,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2196F3',
     marginTop: 10,
+  },
+  profilePicture: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
+  profilePicturePlaceholder: {
+    fontSize: 16,
+    color: 'gray',
+    marginBottom: 10,
+  },
+  changePictureText: {
+    fontSize: 16,
+    color: '#2196F3',
+    marginTop: 10,
+  },
+  cameraContainer: {
+    // flex: 1,
+    backgroundColor: 'black',
+    // justifyContent: 'center',
+    // alignItems: 'center',
+    width:"80%",
+    height:400
+  },
+  camera: {
+    width: '100%',
+    height: '70%',
+  },
+  cameraButton: {
+    backgroundColor: '#2196F3',
+    padding: 5,
+    marginTop: 5,
+  },
+  cameraButtonText: {
+    color: 'white',
+    fontSize: 18,
+  },
+  closeButton: {
+    marginTop: 20,
+  },
+  closeButtonText: {
+    color: '#2196F3',
+    fontSize: 16,
   },
 });
 
