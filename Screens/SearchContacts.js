@@ -36,7 +36,7 @@ const SearchScreen = () =>
 
             const token = await AsyncStorage.getItem('whatsthat_session_token');
 
-            const response = await fetch(`http://localhost:3333/api/1.0.0/search?q=${searchText}&search_in=${filter}&limit=20&offset=${offset}`, {
+            const response = await fetch(`http://localhost:3333/api/1.0.0/search?q=${searchText}&search_in=${filter}&limit=10&offset=${offset}`, {
                 method: 'GET',
                 headers: {
                     Accept: 'application/json',
@@ -68,13 +68,13 @@ const SearchScreen = () =>
     }, [offset]);
     const handleLoadMore = () =>
     {
-        setOffset(prevOffset => prevOffset + 1);
+        setOffset(prevOffset => prevOffset + 10);
     };
     const handleLoadPrevious = () =>
     {
         if (offset >= 1)
         {
-            setOffset(prevOffset => prevOffset - 1);
+            setOffset(prevOffset => prevOffset - 10);
         }
     };
     const renderItem = ({ item }) => (
